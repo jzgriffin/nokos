@@ -14,29 +14,69 @@
 // ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 // SOFTWARE.
 
-#include "config.h"
+#include "i686.h"
+#include "memory.h"
 
 // Multiboot header
 // The linker will ensure that the .multiboot section is placed in a location
 // that a multiboot loader will expect
+.set MULTIBOOT_ALIGN, 4
 .set MULTIBOOT_MAGIC, 0x1BADB002
 .set MULTIBOOT_FLAGS, 0 // The kernel does not rely on multiboot information
 .section .multiboot
-.align 4
+.align MULTIBOOT_ALIGN
 .long MULTIBOOT_MAGIC
 .long MULTIBOOT_FLAGS
 .long -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
 // Entry point
 .section .text
-.global _start
-_start:
+.global entry
+entry:
+    // Enable page size extension for 4 MiB pages
+    movl    %cr4, %eax
+    orl     $(CR4_PSE), %eax
+    movl    %eax, %cr4
+    // Use the entry page directory
+    movl    $(V2P(entry_pdt)), %eax
+    movl    %eax, %cr3
+    // Enable paging
+    movl    %cr0, %eax
+    orl     $(CR0_PG | CR0_WP), %eax
+    movl    %eax, %cr0
+    // Use an indirect jump to continue at the relocated address of the kernel
+    leal    continue, %eax
+    jmp     *%eax
+continue:
+    // Unmap the page containing the starting location of the kernel
+    movl    $0, entry_pdt + 0
+    invlpg  0
     // Set up the kernel stack
     movl    $(stack + KERNEL_STACK_SIZE), %esp
-    // Use an indirect jump to enter the kernel proper
-    // Indirect jumps are always long jumps and will set CS accordingly
-    mov     $main, %eax
-    jmp     *%eax
+    // Enter the kernel proper
+    jmp     main
+.global _start
+_start = V2P(entry)
+
+// Entry page directory table
+// Create a complete page directory table with only two present PDEs: for the
+// current page of the kernel (page 0) and the destination page of the kernel,
+// using 4 MiB pages.  The PDEs for the kernel map to the first 4 MiB of
+// physical memory in read/write mode.
+.section .data
+.align PDT_ALIGN
+entry_pdt:
+.set KERNEL_PDX, PDX(KERNEL_BASE)
+.set KERNEL_PDE, (0x00000 << PDX_OFFSET) | PDE_PS | PDE_RW | PDE_P
+.set NULL_PDE, 0
+.long KERNEL_PDE // PDE for current kernel page
+.rept KERNEL_PDX - 1
+    .long NULL_PDE // Pad intermediate PDEs
+.endr
+.long KERNEL_PDE // PDE for destination kernel page
+.rept PDT_SIZE - KERNEL_PDX - 1
+    .long NULL_PDE // Pad remaining PDEs
+.endr
 
 // Kernel stack
 // The .comm directive creates a symbol in the COMMON section, which is merged

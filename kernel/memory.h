@@ -14,10 +14,15 @@
 // ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 // SOFTWARE.
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef MEMORY_H
+#define MEMORY_H
 
+#define KERNEL_BASE 0xC0000000 // Base of the kernel virtual address
 #define KERNEL_ADDR 0x00100000 // Offset of the kernel from its base
 #define KERNEL_STACK_SIZE 4096 // Size of the kernel stack
 
-#endif // CONFIG_H
+// Kernel physical-virtual address conversion
+#define V2P(a) ((a) - KERNEL_BASE) // Convert a virtual address to physical
+#define P2V(a) ((a) + KERNEL_BASE) // Convert a physical address to virtual
+
+#endif // MEMORY_H

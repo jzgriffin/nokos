@@ -18,10 +18,11 @@
 ENTRY(_start)
 
 /* These values must align with those in config.h */
+KERNEL_BASE = 0xC0000000; /* Base of the kernel virtual address */
 KERNEL_ADDR = 0x00100000; /* Offset of the kernel from its base */
 
 SECTIONS {
-    . = KERNEL_ADDR;
+    . = KERNEL_BASE + KERNEL_ADDR;
 
     .text ALIGN(4K) : AT(KERNEL_ADDR) {
         *(.multiboot)
