@@ -32,6 +32,7 @@
 // Entry point
 .section .text
 .global entry
+.type entry, @function
 entry:
     // Enable page size extension for 4 MiB pages
     movl    %cr4, %eax
@@ -55,6 +56,7 @@ continue:
     movl    $(stack + KERNEL_STACK_SIZE), %esp
     // Enter the kernel proper
     jmp     main
+.size entry, . - entry
 .global _start
 _start = V2P(entry)
 

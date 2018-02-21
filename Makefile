@@ -16,6 +16,8 @@
 
 TOOLCHAIN := i686-elf-
 CC := $(TOOLCHAIN)gcc
+OBJCOPY := $(TOOLCHAIN)objcopy
+GDB := $(TOOLCHAIN)gdb
 QEMU := qemu-system-i386
 
 CFLAGS += -std=gnu11 -Wall -Wextra
@@ -31,7 +33,8 @@ clean: clean-kernel
 distclean: distclean-kernel
 
 kernel.OUTPUT := kernel/kernel.elf
-kernel.LINKER := kernel/kernel.ld
+kernel.SYMBOL := $(patsubst %.elf,%.sym,$(kernel.OUTPUT))
+kernel.LINKER := $(patsubst %.elf,%.ld,$(kernel.OUTPUT))
 kernel.SOURCE := \
     kernel/main.c \
     kernel/start.S
@@ -45,16 +48,30 @@ clean-kernel:
 	$(RM) $(kernel.OBJECT)
 	$(RM) $(kernel.DEPEND)
 distclean-kernel: clean-kernel
-	$(RM) $(kernel.OUTPUT)
+	$(RM) $(kernel.OUTPUT) $(kernel.SYMBOL)
 $(kernel.OUTPUT): $(kernel.OBJECT) $(kernel.LINKER)
 	$(CC) $(CFLAGS) $(kernel.CFLAGS) $(kernel.LDFLAGS) \
 		-o $@ $(kernel.OBJECT)
+ifneq ($(BUILD),release)
+	$(OBJCOPY) --only-keep-debug $(kernel.OUTPUT) $(kernel.SYMBOL)
+	$(OBJCOPY) --strip-debug $(kernel.OUTPUT)
+endif
 kernel/%.o: kernel/%.c
 	$(CC) $(CFLAGS) $(kernel.CFLAGS) -MMD -MP -MT $@ -o $@ -c $<
 kernel/%.o: kernel/%.S
 	$(CC) $(CFLAGS) $(kernel.CFLAGS) -MMD -MP -MT $@ -o $@ -c $<
 -include $(kernel.DEPEND)
 
-.PHONY: run
+.PHONY: run run-console run-gdb run-gdb-console stop gdb
 run: all-kernel
 	$(QEMU) -kernel $(kernel.OUTPUT)
+run-console: all-kernel
+	$(QEMU) -nographic -kernel $(kernel.OUTPUT)
+run-gdb: all-kernel
+	$(QEMU) -S -s -kernel $(kernel.OUTPUT)
+run-gdb-console: all-kernel
+	$(QEMU) -nographic -S -s -kernel $(kernel.OUTPUT)
+stop:
+	kill $(shell pgrep $(QEMU))
+gdb:
+	$(GDB) -q
