@@ -172,6 +172,26 @@ typedef struct {
     uint32_t G          :  1; // Granularity flag
     uint32_t base31_24  :  8; // Base address bits 31:24
 } sde_t;
+
+// Create an empty sde_t
+#define SDE_NULL() (sde_t){0}
+
+// Create a 32-bit sde_t
+#define SDE(limit, base, app, type, dpl) (sde_t){ \
+        (((limit) > UINT16_MAX) ? ((limit) >> 12) : (limit)) & 0xFFFF, \
+        (base) & 0xFFFF, \
+        ((base) >> 16) & 0xFF, \
+        (type), \
+        (app), \
+        (dpl), \
+        1, \
+        ((((limit) > UINT16_MAX) ? ((limit) >> 12) : (limit)) >> 16) & 0xF, \
+        0, \
+        0, \
+        1, \
+        (((limit) > UINT16_MAX) ? 1 : 0), \
+        ((base) >> 24) & 0xFF, \
+    }
 #endif // __ASSEMBLER__
 
 // Intel 242692 table 3-1: Values of application (code and data) segment types
@@ -303,5 +323,11 @@ typedef struct {
 #define PTX(va) (((va) >> PTX_OFFSET) & PTX_SIZE)
 // Get virtual address from page directory index, page table index, and offset
 #define VA(d, t, o) (((d) << PDX_OFFSET) | ((t) << PTX_OFFSET) | (o))
+
+#ifndef __ASSEMBLER__
+
+void lgdt(const sde_t *gdt, uint32_t size);
+
+#endif // __ASSEMBLER__
 
 #endif // I686_H

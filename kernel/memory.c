@@ -15,9 +15,15 @@
 // SOFTWARE.
 
 #include "memory.h"
-void main() {
-    initialize_gdt();
+#include "i686.h"
 
-    // Ensure that main never returns
-    for (;;);
+static sde_t gdt[] = {
+    [GDT_NULL] = SDE_NULL(),
+    [GDT_KERNEL_CODE] = SDE(0xFFFFFFFF, 0, 1, STA_X | STA_R, DPL_KERNEL),
+    [GDT_KERNEL_DATA] = SDE(0xFFFFFFFF, 0, 1, STA_W, DPL_KERNEL),
+};
+
+void initialize_gdt()
+{
+    lgdt(gdt, sizeof gdt);
 }

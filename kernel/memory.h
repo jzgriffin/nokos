@@ -25,4 +25,17 @@
 #define V2P(a) ((a) - KERNEL_BASE) // Convert a virtual address to physical
 #define P2V(a) ((a) + KERNEL_BASE) // Convert a physical address to virtual
 
+#ifndef __ASSEMBLER__
+
+// Indices of GDT entries
+enum {
+    GDT_NULL,
+    GDT_KERNEL_CODE,
+    GDT_KERNEL_DATA,
+};
+
+void initialize_gdt();
+
+#endif // __ASSEMBLER__
+
 #endif // MEMORY_H

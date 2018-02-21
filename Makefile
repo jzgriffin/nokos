@@ -36,7 +36,9 @@ kernel.OUTPUT := kernel/kernel.elf
 kernel.SYMBOL := $(patsubst %.elf,%.sym,$(kernel.OUTPUT))
 kernel.LINKER := $(patsubst %.elf,%.ld,$(kernel.OUTPUT))
 kernel.SOURCE := \
+    kernel/i686.S \
     kernel/main.c \
+    kernel/memory.c \
     kernel/start.S
 kernel.OBJECT := $(patsubst %.c,%.o,$(patsubst %.S,%.o,$(kernel.SOURCE)))
 kernel.DEPEND := $(patsubst %.o,%.d,$(kernel.OBJECT))
